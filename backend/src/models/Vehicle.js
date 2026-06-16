@@ -9,16 +9,83 @@ export default class Vehicle {
     this.year = +vehicleRow.year
     this.currentKm = vehicleRow.current_km
     this.status = vehicleRow.status
+    this.isActive = vehicleRow.is_active
     this.createdAt = new Date(vehicleRow.created_at)
     this.updatedAt = new Date(vehicleRow.updated_at)
   }
-  //metodos CRUD
+
+
+  //metodos CRUD-----
+
   static async findAll(){
-    const result = await query("SELECT * FROM vehicles;")
+    const result = await query("SELECT * FROM vehicles WHERE is_active = true;")
     return result.rows.map((row) => new Vehicle(row))
   }
+  static async findById(id){
+    const result = await query(`SELECT * FROM vehicles WHERE id = $1`, [id])
+    if(!result.rows[0]) return null
+    return new Vehicle(result.rows[0])
+  }
+  static async create( licensePlate, brand, model, year, currentKm, status){
+    const result = await query(
+      `INSERT INTO vehicles (license_plate, brand, model, year, current_km, status, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *;`,
+      [licensePlate, brand, model, year, currentKm, status, true]
+    )
+    return new Vehicle(result.rows[0])
+  }
+  static async update(id, attributes){
+    const { rows } = await query(`SELECT * FROM vehicles WHERE id = $1`, [id])
 
+    if (!rows[0]) return null
 
+    const vehicle = new Vehicle(rows[0])
 
+    const {isActive, ...safeAtributes} = attributes
+    Object.assign(vehicle, safeAtributes)
+    vehicle.updatedAt = new Date()
+
+    await query(
+      `
+      UPDATE vehicles SET
+      license_plate = $1,
+      brand = $2,
+      model = $3,
+      year = $4,
+      current_km = $5,
+      status = $6,
+      updated_at = CURRENT_TIMESTAMP
+      WHERE id = $7;
+      `,
+      [
+        vehicle.licensePlate,
+        vehicle.brand,
+        vehicle.model,
+        vehicle.year,
+        vehicle.currentKm,
+        vehicle.status,
+        vehicle.id
+      ]
+    )
+    return vehicle
+  }
+  static async deactivate(id){
+    const {rows} = await query(
+      `SELECT * FROM vehicles WHERE id = $1`, [id]
+    )
+
+    if(!rows[0]) return null
+
+    await query(
+      `UPDATE vehicles SET
+      is_active = false,
+      updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [id] 
+    )
+
+    return {message: "Vehicle deactivated successfully."}
+  }
+
+  
 }
-
