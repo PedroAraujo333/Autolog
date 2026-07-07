@@ -36,14 +36,17 @@ export default class Vehicle {
     return new Vehicle(result.rows[0])
   }
   static async update(id, attributes){
-    const { rows } = await query(`SELECT * FROM vehicles WHERE id = $1`, [id])
+    const vehicle = await Vehicle.findById(id)
+    if(!vehicle) return null
 
-    if (!rows[0]) return null
+     const { licensePlate, brand, model, year, currentKm, status } = attributes
 
-    const vehicle = new Vehicle(rows[0])
-
-    const {isActive, ...safeAtributes} = attributes
-    Object.assign(vehicle, safeAtributes)
+    vehicle.licensePlate = licensePlate ?? vehicle.licensePlate
+    vehicle.brand = brand ?? vehicle.brand
+    vehicle.model = model ?? vehicle.model
+    vehicle.year = year ?? vehicle.year
+    vehicle.currentKm = currentKm ?? vehicle.currentKm
+    vehicle.status = status ?? vehicle.status
     vehicle.updatedAt = new Date()
 
     await query(
@@ -71,11 +74,8 @@ export default class Vehicle {
     return vehicle
   }
   static async deactivate(id){
-    const {rows} = await query(
-      `SELECT * FROM vehicles WHERE id = $1`, [id]
-    )
-
-    if(!rows[0]) return null
+    const vehicle = await Vehicle.findById(id)
+    if(!vehicle) return null
 
     await query(
       `UPDATE vehicles SET
@@ -84,7 +84,8 @@ export default class Vehicle {
     [id] 
     )
 
-    return {message: "Vehicle deactivated successfully."}
+    vehicle.isActive = false
+    return vehicle
   }
 
   

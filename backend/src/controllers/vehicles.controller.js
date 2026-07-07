@@ -22,7 +22,7 @@ const vehiclesController = {
          try {
             const { licensePlate, brand, model, year, currentKm, status } = req.body
             if (!licensePlate || !brand || !model || currentKm === undefined) {
-            return res.status(400).json({ message: "Inserir a placa é obrigatório, marca, modelo e quilometragem é necessário."})//verificar quais outros NOT NULL no PG
+            return res.status(400).json({ message: "Inserir a placa, marca, modelo e quilometragem é necessário."})//verificar quais outros NOT NULL no PG
             } if (licensePlate.length !==7){
             return res.status(400).json({message: "A placa precisa ter 7 dígitos."})    
             } if (currentKm < 0) {
@@ -44,7 +44,7 @@ const vehiclesController = {
             const id = Number(req.params.id)
             const updatedVehicle = await Vehicle.update(id, req.body)
              if (updatedVehicle === null) return res.status(404).json({message: "Veículo não encontrado."})
-            res.json(updatedVehicle)
+            res.status(200).json(updatedVehicle)
          } catch(error){
             next(error)
          }
