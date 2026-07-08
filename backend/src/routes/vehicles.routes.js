@@ -16,13 +16,19 @@ vehicleRouter.post("/", vehiclesController.create)
 //PUT /vehicles/:id
 vehicleRouter.put("/:id", vehiclesController.update)
 
+//PATCH /vehicles/:id/deactivate
+vehicleRouter.patch("/:id/deactivate", vehiclesController.deactivate)
+
+//DELETE /vehicles/:id
+vehicleRouter.delete("/:id", vehiclesController.delete)
+
+// -----  maintenances  -----
 //GET /vehicles/:id/maintenances
 vehicleRouter.get("/:id/maintenances", maintenanceController.indexByVehicle)
 
 //POST /vehicles/:id/maintenances
 vehicleRouter.post("/:id/maintenances", maintenanceController.create)
 
-//PATCH /vehicles/:id/deactivate
-vehicleRouter.patch("/:id/deactivate", vehiclesController.deactivate)
+
 
 export default vehicleRouter

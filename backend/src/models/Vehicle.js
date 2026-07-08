@@ -87,6 +87,19 @@ export default class Vehicle {
     vehicle.isActive = false
     return vehicle
   }
+  static async delete(id){
+    const vehicle = await Vehicle.findById(id)
+    if(!vehicle) return null
+
+    const maintenanceResult = await query(
+      `SELECT 1 FROM maintenances WHERE vehicle_id = $1 LIMIT 1`, [id]
+    )
+    if(maintenanceResult.rows[0]) return false
+
+    await query(`DELETE FROM vehicles WHERE id = $1`, [id])
+    return true
+
+  }
 
   
 }

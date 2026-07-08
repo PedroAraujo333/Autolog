@@ -59,6 +59,17 @@ const vehiclesController = {
           next(error)
         }
     },
+    delete: async (req, res, next) =>{
+        try{
+            const id = Number(req.params.id)
+            const result = await Vehicle.delete(id)
+            if (result === null) return res.status(404).json({ message: "Veículo não encontrado." })
+            if (result === false) return res.status(409).json({ message: "Veículo possui manutenções e não pode ser excluído."})
+            res.status(200).json({ message: "Veículo excluído com sucesso." })
+        } catch(error){
+            next(error)
+        }
+    }
 }
 
 export default vehiclesController;
