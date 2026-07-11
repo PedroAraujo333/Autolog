@@ -1,5 +1,8 @@
 import Vehicle from "../models/Vehicle.js";
 
+const validStatuses = ["available", "maintenance", "unavailable"]
+const plateRegex = /^[A-Z]{3}\d([A-I]|\d)\d{2}$/
+
 const vehiclesController = {
     index: async (req, res, next) =>{
         try {
@@ -20,15 +23,27 @@ const vehiclesController = {
     },
     create: async (req, res, next) =>{
          try {
+            
             const { licensePlate, brand, model, year, currentKm, status } = req.body
+           
             if (!licensePlate || !brand || !model || currentKm === undefined) {
-            return res.status(400).json({ message: "Inserir a placa, marca, modelo e quilometragem é necessário."})//verificar quais outros NOT NULL no PG
-            } if (licensePlate.length !==7){
+            return res.status(400).json({ message: "Inserir a placa, marca, modelo e quilometragem é necessário."})
+            } 
+            
+            const fixedPlate = licensePlate.replace(/[\s-]/g, "").toUpperCase()
+            
+
+            if (fixedPlate.length !==7){
             return res.status(400).json({message: "A placa precisa ter 7 dígitos."})    
-            } if (currentKm < 0) {
-                return res.status(400).json({ message: "A quilometragem não pode ser menor que 0."})
+            } if(!plateRegex.test(fixedPlate)){
+            return res.status(400).json({message: "Formato de placa inválido."})
             }
-            const newVehicle = await Vehicle.create(licensePlate, brand, model, year, currentKm, status)
+            if (currentKm < 0) {
+            return res.status(400).json({ message: "A quilometragem não pode ser menor que 0."})
+            } if (status !== undefined && !validStatuses.includes(status)){
+                return res.status(400).json({message: "status inválido."})
+            }
+            const newVehicle = await Vehicle.create(fixedPlate, brand, model, year, currentKm, status)
             res.status(201).json(newVehicle)
          } catch(error){
             next(error)
@@ -36,11 +51,19 @@ const vehiclesController = {
     },
     update: async (req, res, next) =>{
          try {
-
             if(req.body.currentKm !== undefined && req.body.currentKm < 0){
                 return res.status(400).json({ message: "A quilometragem não pode ser menor que 0."})
+            } if(req.body.licensePlate){
+                
+                const fixedPlate = req.body.licensePlate.replace(/[\s-]/g, "").toUpperCase()
+                
+                if(!plateRegex.test(fixedPlate)){
+                    return res.status(400).json({ message: "Formato de placa inválido." })
+                }
+                req.body.licensePlate = fixedPlate
+            } if(req.body.status !== undefined && !validStatuses.includes(req.body.status)){
+                return res.status(400).json({ message: "Status inválido." })
             }
-
             const id = Number(req.params.id)
             const updatedVehicle = await Vehicle.update(id, req.body)
              if (updatedVehicle === null) return res.status(404).json({message: "Veículo não encontrado."})
@@ -59,6 +82,18 @@ const vehiclesController = {
           next(error)
         }
     },
+    activate: async (req, res, next) => {
+        try {
+            const id = Number(req.params.id)
+            const result = await Vehicle.activate(id)
+             if (result === null) return res.status(404).json({ message: "Veículo não encontrado." })
+            res.json(result)
+        } catch (error) {
+          next(error)
+        }
+    },
+
+
     delete: async (req, res, next) =>{
         try{
             const id = Number(req.params.id)

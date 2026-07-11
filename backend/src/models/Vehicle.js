@@ -77,15 +77,33 @@ export default class Vehicle {
     const vehicle = await Vehicle.findById(id)
     if(!vehicle) return null
 
-    await query(
+   const result = await query(
       `UPDATE vehicles SET
       is_active = false,
-      updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      status = 'unavailable',
+      updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *;`,
     [id] 
     )
 
-    vehicle.isActive = false
-    return vehicle
+    return new Vehicle(result.rows[0])
+  }
+  static async activate(id){
+    const vehicle = await Vehicle.findById(id)
+    if(!vehicle) return null
+
+   const result = await query(
+      `UPDATE vehicles SET
+      is_active = true,
+      status = 'available',
+      updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *;`,
+    [id] 
+    )
+
+    return new Vehicle(result.rows[0])
   }
   static async delete(id){
     const vehicle = await Vehicle.findById(id)

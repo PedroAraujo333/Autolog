@@ -19,6 +19,9 @@ vehicleRouter.put("/:id", vehiclesController.update)
 //PATCH /vehicles/:id/deactivate
 vehicleRouter.patch("/:id/deactivate", vehiclesController.deactivate)
 
+//PATCH /vehicles/:id/activate
+vehicleRouter.patch("/:id/activate", vehiclesController.activate)
+
 //DELETE /vehicles/:id
 vehicleRouter.delete("/:id", vehiclesController.delete)
 
