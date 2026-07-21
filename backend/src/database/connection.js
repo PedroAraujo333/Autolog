@@ -12,3 +12,7 @@ export async function query(queryString, params, callback) {
     return pool.query(queryString, params, callback)
 }
 
+export async function getClient(){
+    return pool.connect()
+}
+

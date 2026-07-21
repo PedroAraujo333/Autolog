@@ -1,4 +1,4 @@
-import { query } from "../database/connection.js"
+import { query, getClient } from "../database/connection.js"
 import Vehicle from "./Vehicle.js"
 
 
@@ -34,7 +34,7 @@ export default class Maintenance{
             vehicles.created_at AS "vehicle.created_at", 
             vehicles.updated_at AS "vehicle.updated_at"
             FROM maintenances JOIN vehicles ON vehicles.id = maintenances.vehicle_id;
-            `)//tem necessidade de eu pegar o created e o updated do vehicles aqui? pq?
+            `)
          return result.rows.map((row) => {
             const vehicle = {
                id: row["vehicle.id"],
@@ -82,23 +82,49 @@ export default class Maintenance{
         return new Maintenance(maintenanceData, vehicle)
     }
     static async create(vehicleId, maintenanceType, description, cost, maintenanceDate, kmAtMaintenance, workshopName ){
+
         const vehicle = await Vehicle.findById(vehicleId)
         if(!vehicle) return null
-        const result = await query(
-            `INSERT INTO maintenances (vehicle_id, maintenance_type, description, cost, maintenance_date, km_at_maintenance, workshop_name)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *;`,
-            [vehicleId, maintenanceType, description, cost, maintenanceDate, kmAtMaintenance, workshopName]
-        )
-        return new Maintenance(result.rows[0])
 
+        const dbClient = await getClient()
+        let response
+        try{
+            await dbClient.query("BEGIN")
+        
+            const result = await dbClient.query(
+                `INSERT INTO maintenances (vehicle_id, maintenance_type, description, cost, maintenance_date, km_at_maintenance, workshop_name)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *;`,
+                [vehicleId, maintenanceType, description, cost, maintenanceDate, kmAtMaintenance, workshopName]
+            )
+            const maintenance = new Maintenance(result.rows[0])
+
+            await dbClient.query(
+                `UPDATE vehicles SET current_km = $1
+                WHERE id = $2;`, 
+                [kmAtMaintenance, vehicleId]
+            )
+            
+            await dbClient.query("COMMIT")
+            response = maintenance
+        } catch(error){
+            await dbClient.query("ROLLBACK")
+            throw error
+        } finally {
+            dbClient.release()
+        }
+
+        return response
     }
     static async update(id, attributes){
         const maintenance = await Maintenance.findById(id)
         if (!maintenance) return null
 
+        const vehicle = await Vehicle.findById(maintenance.vehicleId)
         
         const { maintenanceType, description, cost, maintenanceDate, kmAtMaintenance, workshopName } = attributes
+
+        if (kmAtMaintenance !== undefined && kmAtMaintenance > vehicle.currentKm) return false
 
         maintenance.maintenanceType = maintenanceType ?? maintenance.maintenanceType
         maintenance.description = description ?? maintenance.description
